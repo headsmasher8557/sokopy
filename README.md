@@ -1,14 +1,12 @@
-# Sokoban
+# SokoPy
 
 implementation of the famous box pushing game on python.
 
-## docs for custom map
+## Level formats
 
-maps are defined by plaintext files with their lines consisting of numbers.
+The Sokoban ASCII format is currently not implemented. The objective is to reach 100% compatibility with Microban levelsets.
 
-some tiles you can add to your map are:
-- `0` or any invalid character - empty space
-- `1` - solid wall
-- `2` - pushable box
-- `3` - goal
-- `4` - player spawn position
+## Attribution
+
+### `sets/microban1.sok`
+Microban (155 puzzles) by David W. Skinner
