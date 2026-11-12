@@ -95,7 +95,6 @@ class Game:
     Player = Vector2(0, 0)
     Moves = 0
     InProgress = False
-    RawMap = DEFAULT_MAP
 
     def __init__(self, gameMap):
         self.reset(gameMap)
