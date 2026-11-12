@@ -1,12 +1,21 @@
-import sys  # sys.stdout.write is used instead of print for preference.
-import os
 from enum import Enum, IntEnum
+from copy import deepcopy
+import sys  # sys.stdout.write is used instead of print for preference.
+import os  # mostly for os.name on raw mode checks
 import RawMode
-import copy
 
 USE_RAW_MODE = True
-if os.name == "posix" and USE_RAW_MODE:
-    RawMode.posix_enable()
+if USE_RAW_MODE:
+    if os.name == "posix":
+        RawMode.posix_enable()
+    elif os.name == "nt":
+        pass
+    else:
+        print("Raw mode is enabled, but your OS doesnt support it")
+        print("It will be disabled as a fallback now")
+        print("Press ENTER to continue")
+        input("")
+        USE_RAW_MODE = False
 
 # TODO: split this source code into different files its getting messy
 
@@ -69,7 +78,7 @@ class Tileset:
 
     def changeMap(self, mapData):
         self.MapArchive = mapData
-        self.Map = copy.deepcopy(mapData)
+        self.Map = deepcopy(mapData)
         self.updateDimensions()
 
     def updateDimensions(self):
@@ -127,21 +136,20 @@ class Game:
         return True
 
     def step(self):
-        # HACK absolutely disgusting if
+        promptstr = "enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
+        if USE_RAW_MODE:
+            sys.stdout.write(promptstr)
+            sys.stdout.flush()
         inp = None
         while not inp:
             try:
-                promptstr = "enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
                 if not USE_RAW_MODE:
                     i = input(promptstr).lstrip().lower()[-1]
                 elif USE_RAW_MODE and os.name == "posix":
-                    sys.stdout.write(promptstr)
-                    sys.stdout.flush()
                     i = RawMode.posix_getch()
                 elif USE_RAW_MODE and os.name == "nt":
-                    sys.stdout.write(promptstr)
-                    sys.stdout.flush()
                     i = RawMode.nt_getch()
+                # HACK absolutely disgusting if
                 if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
                     inp = i
                     break
