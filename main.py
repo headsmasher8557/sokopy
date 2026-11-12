@@ -1,6 +1,12 @@
-from sys import stdout # sys.stdout.write is used instead of print for preference.
+import sys  # sys.stdout.write is used instead of print for preference.
+import os
 from enum import Enum, IntEnum
+import RawMode
 import copy
+
+USE_RAW_MODE = True
+if os.name == "posix" and USE_RAW_MODE:
+    RawMode.posix_enable()
 
 # TODO: split this source code into different files its getting messy
 
@@ -36,7 +42,7 @@ RendererCharacters: dict[int, str] = {
     TileType.SOLID:   "██",
     TileType.BOX:     "[]",
     TileType.GOAL:    "╬╬",
-    (TileType.BOX | TileType.GOAL): "{}", # box on top of goal
+    (TileType.BOX | TileType.GOAL): "!!", # box on top of goal
     TileType.PLAYER:  ":)"
 }
 
@@ -110,27 +116,50 @@ class Game:
         self.Player.setXY(plr_x, plr_y)
         self.Map.setTileAt(plr_x, plr_y, TileType.EMPTY) # remove player spawn tile after spawning
 
+    def displaceTile(self, x: int, y: int, vx: int, vy: int, replaceTile=None, replacePrev=None):
+        """ move a given tile x, y in the direction of vector vx, vy """
+        here  = self.Map.getTileAt(x, y)
+        there = self.Map.getTileAt(x+vx, y+vy)
+        if there != TileType.EMPTY and there != TileType.GOAL:
+            return False
+        self.Map.setTileAt(x, y, replacePrev or TileType.EMPTY)
+        self.Map.setTileAt(x+vx, y+vy, replaceTile or here)
+        return True
+
     def step(self):
         # HACK absolutely disgusting if
         inp = None
         while not inp:
-            i = input("enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): ").lstrip().lower()[0]
-            if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
-                inp = i
-                break
+            try:
+                promptstr = "enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
+                if not USE_RAW_MODE:
+                    i = input(promptstr).lstrip().lower()[-1]
+                elif USE_RAW_MODE and os.name == "posix":
+                    sys.stdout.write(promptstr)
+                    sys.stdout.flush()
+                    i = RawMode.posix_getch()
+                if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
+                    inp = i
+                    break
+            except:
+                continue
+        moveDir = None
         match inp:
             case "w":
-                self.move(MoveDirection.UP)
+                moveDir = MoveDirection.UP
             case "a":
-                self.move(MoveDirection.LEFT)
+                moveDir = MoveDirection.LEFT
             case "s":
-                self.move(MoveDirection.DOWN)
+                moveDir = MoveDirection.DOWN
             case "d":
-                self.move(MoveDirection.RIGHT)
+                moveDir = MoveDirection.RIGHT
             case "r":
                 self.reset()
             case "x":
                 self.InProgress = False # quit
+            case _:
+                raise Exception("invalid char")
+        self.move(moveDir)
 
     def move(self, direction: MoveDirection):
         moveVector = Vector2(0, 0)
@@ -144,12 +173,26 @@ class Game:
             case MoveDirection.RIGHT:
                 moveVector.x = 1
             case _:
-                raise Exception("invalid movedirection")
+                return -1
         # check end position
         endPx, endPy = self.Player.x + moveVector.x, self.Player.y + moveVector.y
+        tile = self.Map.getTileAt(self.Player.x, self.Player.y)
         endTile = self.Map.getTileAt(endPx, endPy)
         if endTile == TileType.SOLID:
             return -1
+        elif endTile == TileType.BOX:
+            success = self.displaceTile(
+                    endPx,
+                    endPy,
+                    moveVector.x,
+                    moveVector.y,
+                    (TileType.BOX | TileType.GOAL) if self.Map.getTileAt(endPx+moveVector.x, endPy+moveVector.y) == TileType.GOAL else TileType.BOX)
+            if not success:
+                return -1
+        elif endTile == (TileType.BOX | TileType.GOAL):
+            success = self.displaceTile(endPx, endPy, moveVector.x, moveVector.y, TileType.BOX, TileType.GOAL)
+            if not success:
+                return -1
         self.Moves += 1
         self.Player.x = endPx
         self.Player.y = endPy
@@ -158,25 +201,28 @@ class Game:
         for y in range(self.Map.Dimensions.y):
             for x in range(self.Map.Dimensions.x):
                 if x == self.Player.x and y == self.Player.y:
-                    stdout.write(RendererCharacters[TileType.PLAYER])
+                    sys.stdout.write(RendererCharacters[TileType.PLAYER])
                 else:
-                    stdout.write(RendererCharacters[self.Map.getTileAt(x, y)])
-            stdout.write("\n")
+                    sys.stdout.write(RendererCharacters[self.Map.getTileAt(x, y)])
+            sys.stdout.write("\n")
 
     def render(self):
         """ render the game map and stats """
-        stdout.write(ANSI_CLEAR)
+        sys.stdout.write(ANSI_CLEAR)
         # stats
-        stdout.write("MOVES: " + str(self.Moves)) # what other stats..?
-        stdout.write("\n" * 2)
+        sys.stdout.write("MOVES: " + str(self.Moves)) # what other stats..?
+        sys.stdout.write("\n" * 2)
         # world
         self.renderWorld()
         # flush changes
-        stdout.flush()
+        sys.stdout.flush()
 
-stdout.write(ANSI_CLEAR)
-stdout.flush()
+sys.stdout.write(ANSI_CLEAR)
+sys.stdout.flush()
 CurrentGame = Game(DEFAULT_MAP)
 while CurrentGame.InProgress:
     CurrentGame.render()
     CurrentGame.step()
+
+if os.name == "posix" and USE_RAW_MODE:
+    RawMode.posix_restore()
