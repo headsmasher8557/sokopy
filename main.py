@@ -5,18 +5,17 @@ import sys  # sys.stdout.write is used instead of print for preference.
 import os  # mostly for os.name on raw mode checks
 import RawMode
 
-USE_RAW_MODE = True
-if USE_RAW_MODE:
+if RawMode.enabled:
     if os.name == "posix":
         RawMode.posix_enable()
     elif os.name == "nt":
         pass
     else:
         print("Raw mode is enabled, but your OS doesnt support it")
-        print("It will be disabled as a fallback now")
+        print("It will be disabled as a fallback")
         print("Press ENTER to continue")
         input("")
-        USE_RAW_MODE = False
+        RawMode.enabled = False
 
 # TODO: split this source code into different files its getting messy
 
@@ -116,17 +115,17 @@ class Game:
 
     def step(self):
         promptstr = "enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
-        if USE_RAW_MODE:
+        if RawMode.enabled:
             sys.stdout.write(promptstr)
             sys.stdout.flush()
         inp = None
         while not inp:
             try:
-                if not USE_RAW_MODE:
+                if not RawMode.enabled:
                     i = input(promptstr).lstrip().lower()[-1]
-                elif USE_RAW_MODE and os.name == "posix":
+                elif RawMode.enabled and os.name == "posix":
                     i = RawMode.posix_getch()
-                elif USE_RAW_MODE and os.name == "nt":
+                elif RawMode.enabled and os.name == "nt":
                     i = RawMode.nt_getch()
                 # HACK absolutely disgusting if
                 if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
@@ -215,5 +214,5 @@ while CurrentGame.InProgress:
     CurrentGame.render()
     CurrentGame.step()
 
-if os.name == "posix" and USE_RAW_MODE:
+if os.name == "posix" and RawMode.enabled:
     RawMode.posix_restore()

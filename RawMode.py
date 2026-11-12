@@ -1,4 +1,5 @@
 import os
+enabled = True
 if os.name == "posix":
     import sys
     import tty
