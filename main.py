@@ -1,5 +1,6 @@
 from enum import Enum, IntEnum
 from copy import deepcopy
+from Enum import MoveDirection, TileType, RendererCharacters
 import sys  # sys.stdout.write is used instead of print for preference.
 import os  # mostly for os.name on raw mode checks
 import RawMode
@@ -32,28 +33,6 @@ DEFAULT_MAP = [
         [1,0,0,0,0,0,8,1],
         [1,1,1,1,1,1,1,1] ]
 
-class MoveDirection(IntEnum):
-    UP    = 0
-    DOWN  = 1
-    LEFT  = 2
-    RIGHT = 3
-
-class TileType(IntEnum):
-    EMPTY   = 0
-    SOLID   = 1
-    BOX     = 2
-    GOAL    = 4
-    # to check if BOX and GOAL, tile == (BOX | GOAL)"
-    PLAYER  = 8
-
-RendererCharacters: dict[int, str] = {
-    TileType.EMPTY:   "  ",
-    TileType.SOLID:   "██",
-    TileType.BOX:     "[]",
-    TileType.GOAL:    "╬╬",
-    (TileType.BOX | TileType.GOAL): "!!", # box on top of goal
-    TileType.PLAYER:  ":)"
-}
 
 class Vector2:
     x = 0
