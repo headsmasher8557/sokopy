@@ -1,10 +1,12 @@
 from sys import stdout # sys.stdout.write is used instead of print for preference.
 from enum import Enum, IntEnum
+import copy
 
 # TODO: split this source code into different files its getting messy
 
 ANSI_CLEAR = "\x1b[2J\x1b[3J\x1b[;H" # ANSI escape code for clearing display
 
+# basic test map
 DEFAULT_MAP = [
         [1,1,1,1,1,1,1,1],
         [1,0,0,0,0,0,0,1],
@@ -30,12 +32,12 @@ class TileType(IntEnum):
     PLAYER  = 8
 
 RendererCharacters: dict[int, str] = {
-    TileType.EMPTY:   " ",
-    TileType.SOLID:   "#",
-    TileType.BOX:     "B",
-    TileType.GOAL:    "G",
-    (TileType.BOX | TileType.GOAL): "!", # box on top of goal
-    TileType.PLAYER:  "P"
+    TileType.EMPTY:   "  ",
+    TileType.SOLID:   "██",
+    TileType.BOX:     "[]",
+    TileType.GOAL:    "╬╬",
+    (TileType.BOX | TileType.GOAL): "{}", # box on top of goal
+    TileType.PLAYER:  ":)"
 }
 
 class Vector2:
@@ -52,6 +54,7 @@ class Vector2:
 class Tileset:
     Map: list[list[int]] = DEFAULT_MAP
     Dimensions = Vector2(8, 8)
+    MapArchive = None # Used in Game.reset for reloading maps
 
     def __init__(self, mapData=None):
         if not mapData:
@@ -59,7 +62,8 @@ class Tileset:
         self.changeMap(mapData)
 
     def changeMap(self, mapData):
-        self.Map = mapData.copy()
+        self.MapArchive = mapData
+        self.Map = copy.deepcopy(mapData)
         self.updateDimensions()
 
     def updateDimensions(self):
@@ -84,22 +88,72 @@ class Tileset:
         for y in range(self.Dimensions.y):
             for x in range(self.Dimensions.x):
                 if self.getTileAt(x, y) == tileType: return x, y
+        return -1, -1
 
 class Game:
     Map = Tileset(DEFAULT_MAP)
     Player = Vector2(0, 0)
     Moves = 0
+    InProgress = False
+    RawMap = DEFAULT_MAP
 
-    def __init__(self, gameMap=None):
-        if gameMap == None:
-            raise Exception("no gamemap provided")
-        self.Map.changeMap(gameMap)
+    def __init__(self, gameMap):
+        self.reset(gameMap)
+
+    def reset(self, gameMap=None):
+        self.Moves = 0
+        self.InProgress = True
+        self.Map.changeMap(gameMap or self.Map.MapArchive)
         # find first player spawn, ignore any subsequent ones. TODO decide if they should raise exceptions?
         plr_x, plr_y = self.Map.findFirstTile(TileType.PLAYER)
         if plr_x == -1 and plr_y == -1:
             raise Exception("no player start found")
         self.Player.setXY(plr_x, plr_y)
-        # self.Map.setTileAt(plr_x, plr_y, TileType.EMPTY) # remove player spawn tile after spawning
+        self.Map.setTileAt(plr_x, plr_y, TileType.EMPTY) # remove player spawn tile after spawning
+
+    def step(self):
+        # HACK absolutely disgusting if
+        inp = None
+        while not inp:
+            i = input("enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): ").lstrip().lower()[0]
+            if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
+                inp = i
+                break
+        match inp:
+            case "w":
+                self.move(MoveDirection.UP)
+            case "a":
+                self.move(MoveDirection.LEFT)
+            case "s":
+                self.move(MoveDirection.DOWN)
+            case "d":
+                self.move(MoveDirection.RIGHT)
+            case "r":
+                self.reset()
+            case "x":
+                self.InProgress = False # quit
+
+    def move(self, direction: MoveDirection):
+        moveVector = Vector2(0, 0)
+        match direction:
+            case MoveDirection.UP:
+                moveVector.y = -1
+            case MoveDirection.DOWN:
+                moveVector.y = 1
+            case MoveDirection.LEFT:
+                moveVector.x = -1
+            case MoveDirection.RIGHT:
+                moveVector.x = 1
+            case _:
+                raise Exception("invalid movedirection")
+        # check end position
+        endPx, endPy = self.Player.x + moveVector.x, self.Player.y + moveVector.y
+        endTile = self.Map.getTileAt(endPx, endPy)
+        if endTile == TileType.SOLID:
+            return -1
+        self.Moves += 1
+        self.Player.x = endPx
+        self.Player.y = endPy
 
     def renderWorld(self):
         for y in range(self.Map.Dimensions.y):
@@ -121,8 +175,9 @@ class Game:
         # flush changes
         stdout.flush()
 
-
 stdout.write(ANSI_CLEAR)
 stdout.flush()
 CurrentGame = Game(DEFAULT_MAP)
-CurrentGame.render()
+while CurrentGame.InProgress:
+    CurrentGame.render()
+    CurrentGame.step()
