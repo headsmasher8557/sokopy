@@ -14,10 +14,8 @@ if os.name == "posix":
     def posix_restore():
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 elif os.name == "nt":
-    # TODO test NT support. main dev uses linux
     import msvcrt
-
     def nt_getch():
         while True:
             if msvcrt.kbhit():
-                return msvcrt.getch()
+                return msvcrt.getwch()

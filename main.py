@@ -138,6 +138,10 @@ class Game:
                     sys.stdout.write(promptstr)
                     sys.stdout.flush()
                     i = RawMode.posix_getch()
+                elif USE_RAW_MODE and os.name == "nt":
+                    sys.stdout.write(promptstr)
+                    sys.stdout.flush()
+                    i = RawMode.nt_getch()
                 if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
                     inp = i
                     break
