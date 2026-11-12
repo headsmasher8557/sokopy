@@ -23,3 +23,14 @@ RendererCharacters: dict[int, str] = {
     (TileType.BOX | TileType.GOAL): "!!", # box on top of goal
     TileType.PLAYER:  ":)"
 }
+
+# basic test map
+DEFAULT_MAP = [
+        [1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,1],
+        [1,0,1,0,0,0,0,1],
+        [1,0,0,2,0,0,0,1],
+        [1,0,0,0,4,0,0,1],
+        [1,0,0,0,0,6,0,1],
+        [1,0,0,0,0,0,8,1],
+        [1,1,1,1,1,1,1,1] ]
