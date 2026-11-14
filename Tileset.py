@@ -30,7 +30,8 @@ class Tileset:
                     row[x] = 0
 
     def getTileAt(self, x: int, y: int) -> int:
-        return self.Map[y][x]
+        row = self.Map[y]
+        return row[x] if x < len(row) else Enum.TileType.EMPTY
 
     def setTileAt(self, x: int, y: int, v: int):
         self.Map[y][x] = v

@@ -36,12 +36,17 @@ class Game:
         self.Moves = 0
         self.InProgress = True
         self.Map.changeMap(gameMap or self.Map.MapArchive)
-        # find first player spawn, ignore any subsequent ones. TODO decide if they should raise exceptions?
+        # find first player spawn, ignore any subsequent ones.
         plr_x, plr_y = self.Map.findFirstTile(Enum.TileType.PLAYER)
         if plr_x == -1 and plr_y == -1:
-            raise Exception("no player start found")
+            # maybe its a PLAYER | GOAL?
+            plr_x, plr_y = self.Map.findFirstTile(Enum.TileType.PLAYER | Enum.TileType.GOAL)
+            if plr_x == -1 and plr_y == -1:
+                raise Exception("no player start found")
+            self.Map.setTileAt(plr_x, plr_y, Enum.TileType.GOAL)
+        else:
+            self.Map.setTileAt(plr_x, plr_y, Enum.TileType.EMPTY) # remove player spawn tile after spawning
         self.Player.setXY(plr_x, plr_y)
-        self.Map.setTileAt(plr_x, plr_y, Enum.TileType.EMPTY) # remove player spawn tile after spawning
 
     # input handler
 
@@ -129,15 +134,17 @@ class Game:
             return -1
         elif endTile == Enum.TileType.BOX:
             success = self.displaceTile(
-                    endPx,
-                    endPy,
-                    moveVector.x,
-                    moveVector.y,
+                    endPx, endPy,
+                    moveVector.x, moveVector.y,
                     (Enum.TileType.BOX | Enum.TileType.GOAL) if self.Map.getTileAt(endPx+moveVector.x, endPy+moveVector.y) == Enum.TileType.GOAL else Enum.TileType.BOX)
             if not success:
                 return -1
         elif endTile == (Enum.TileType.BOX | Enum.TileType.GOAL):
-            success = self.displaceTile(endPx, endPy, moveVector.x, moveVector.y, Enum.TileType.BOX, Enum.TileType.GOAL)
+            success = self.displaceTile(
+                    endPx, endPy,
+                    moveVector.x, moveVector.y,
+                    (Enum.TileType.BOX | Enum.TileType.GOAL) if self.Map.getTileAt(endPx+moveVector.x, endPy+moveVector.y) == Enum.TileType.GOAL else Enum.TileType.BOX,
+                    Enum.TileType.GOAL)
             if not success:
                 return -1
         self.Moves += 1
@@ -176,6 +183,8 @@ class Game:
         # flush changes
         sys.stdout.flush()
 
+import MapConverter
+
 # bit of a helper class to help manage games and mostly the menu
 class GameManager:
     CurrentGame = Game(Enum.DEFAULT_MAP)
@@ -189,7 +198,8 @@ class GameManager:
         sys.stdout.write(ANSI_CLEAR)
         sys.stdout.write(" " + "-" * TITLESEPLEN + TITLESTR + "-" * TITLESEPLEN + "\n")
         sys.stdout.write(" " + FLAIRSTR + "\n\n")
-        sys.stdout.write(" 1 - Play the Test Map\n")
+        sys.stdout.write(" 1 - Play the Microban I LevelSet\n")
+        sys.stdout.write(" 2 - Play the Test Map\n")
         sys.stdout.write(" X - Exit\n")
         sys.stdout.flush()
         i = None
@@ -198,10 +208,27 @@ class GameManager:
                 i = RawMode.getch().lower()
             else:
                 i = input("enter a key: ").lower()
-            if i == "1" or i == "x":
+            if i == "1" or i == "2" or i == "x":
                 break
         match i:
             case "1":
+                levelset = MapConverter.convert_from_file("sets/microban1.txt")
+                for level in levelset:
+                    self.startGame(level)
+                    sys.stdout.write("\n N - Next!\n X - Stop\n")
+                    while True:
+                        if RawMode.enabled:
+                            i = RawMode.getch().lower()
+                        else:
+                            i = input("enter a key: ").lower()
+                        if i == "n" or i == "x":
+                            break
+                    match i:
+                        case "x":
+                            break
+                        case "n":
+                            pass
+            case "2":
                 self.startGame(Enum.DEFAULT_MAP)
             case "x":
                 return

@@ -4,7 +4,7 @@ Clone of Sokoban written in Python.
 
 ## Levels
 
-Right now, the test map is hardcoded into the game, and is the only one you can choose through the menu. Eventually support for (at least) the Microban levelsets will be implemented
+TXT levelsets are supported by SokoPy. Not all levels of Microban have been tested, although no major issues are expected.
 
 ## Attribution
 
