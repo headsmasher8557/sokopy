@@ -26,11 +26,13 @@ class Game:
     Player = Vector2(0, 0)
     Moves = 0
     InProgress = False
+    ExitReason = Enum.ExitReason.UNKNOWN
 
     def __init__(self, gameMap):
         self.reset(gameMap)
 
     def reset(self, gameMap=None):
+        ExitReason = Enum.ExitReason.UNKNOWN
         self.Moves = 0
         self.InProgress = True
         self.Map.changeMap(gameMap or self.Map.MapArchive)
@@ -44,15 +46,15 @@ class Game:
     # input handler
 
     def step(self):
-        promptstr = "enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
+        promptstr = "(W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
         if RawMode.enabled:
-            sys.stdout.write(promptstr)
+            sys.stdout.write("press a key " + promptstr)
             sys.stdout.flush()
         inp = None
         while not inp:
             try:
                 if not RawMode.enabled:
-                    i = input(promptstr).lstrip().lower()[-1]
+                    i = input("enter a key " + promptstr).lstrip().lower()[-1]
                 elif RawMode.enabled and os.name == "posix":
                     i = RawMode.posix_getch()
                 elif RawMode.enabled and os.name == "nt":
@@ -77,6 +79,7 @@ class Game:
                 self.reset()
             case "x":
                 self.InProgress = False # quit
+                self.ExitReason = Enum.ExitReason.INGAME_QUIT
             case _:
                 raise Exception("invalid char")
         self.move(moveDir)
@@ -148,9 +151,10 @@ class Game:
     def onWin(self):
         """ function called when the win condition is met """
         self.render() # make sure to let the player view the last frame before winning
-        sys.stdout.write("\nYOU WON!!\n")
+        sys.stdout.write("YOU WON!!\n")
         sys.stdout.flush()
         self.InProgress = False
+        self.ExitReason = Enum.ExitReason.VICTORY
 
     # renderer
 
@@ -167,19 +171,73 @@ class Game:
         """ render the game map and stats """
         sys.stdout.write(ANSI_CLEAR)
         # stats
-        sys.stdout.write("MOVES: " + str(self.Moves)) # what other stats..?
-        sys.stdout.write("\n" * 2)
+        sys.stdout.write("MOVES: " + str(self.Moves))
+        sys.stdout.write("\n")
         # world
         self.renderMap()
         # flush changes
         sys.stdout.flush()
 
+# bit of a helper class to help manage games and mostly the menu
+class GameManager:
+    CurrentGame = Game(Enum.DEFAULT_MAP)
+    def mainMenu(self):
+        PLRCHR = Enum.RendererCharacters[Enum.TileType.PLAYER]
+        BOXCHR = Enum.RendererCharacters[Enum.TileType.BOX]
+        GOLCHR = Enum.RendererCharacters[Enum.TileType.GOAL]
+        TITLESTR =" SokoPy "
+        FLAIRSTR = f"You're the {PLRCHR}, Push all the {BOXCHR} into the {GOLCHR}!"
+        TITLESEPLEN = int(len(FLAIRSTR)/2) - int(len(TITLESTR)/2)
+        sys.stdout.write(ANSI_CLEAR)
+        sys.stdout.write(" " + "-" * TITLESEPLEN + TITLESTR + "-" * TITLESEPLEN + "\n")
+        sys.stdout.write(" " + FLAIRSTR + "\n\n")
+        sys.stdout.write(" 1 - Play the Test Map\n")
+        sys.stdout.write(" X - Exit\n")
+        sys.stdout.flush()
+        i = None
+        while True:
+            if not RawMode.enabled:
+                i = input("enter a key: ").lower()
+            elif os.name == "posix":
+                i = RawMode.posix_getch().lower()
+            elif os.name == "nt":
+                i = RawMode.nt_getch().lower()
+            if i == "1" or i == "x":
+                break
+        match i:
+            case "1":
+                self.startGame(Enum.DEFAULT_MAP)
+            case "x":
+                return
+        # post-game menu
+        sys.stdout.write("\n M - Return to Main Menu\n")
+        sys.stdout.write(" X - Exit\n")
+        sys.stdout.flush()
+        i = None
+        while True:
+            if not RawMode.enabled:
+                i = input("enter a key: ").lower()
+            elif os.name == "posix":
+                i = RawMode.posix_getch().lower()
+            elif os.name == "nt":
+                i = RawMode.nt_getch().lower()
+            if i == "m" or i == "x":
+                break
+        match i:
+            case "m":
+                return self.mainMenu()
+            case "x":
+                return
+
+    def startGame(self, gameMap):
+        self.CurrentGame.reset(gameMap)
+        while self.CurrentGame.InProgress:
+            self.CurrentGame.render()
+            self.CurrentGame.step()
+
 sys.stdout.write(ANSI_CLEAR)
 sys.stdout.flush()
-CurrentGame = Game(Enum.DEFAULT_MAP)
-while CurrentGame.InProgress:
-    CurrentGame.render()
-    CurrentGame.step()
-
+gameman = GameManager()
+gameman.mainMenu()
 if os.name == "posix" and RawMode.enabled:
     RawMode.posix_restore()

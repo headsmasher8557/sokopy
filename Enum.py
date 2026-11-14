@@ -1,5 +1,10 @@
 from enum import Enum, IntEnum
 
+class ExitReason(IntEnum):
+    UNKNOWN     = 0
+    INGAME_QUIT = 1
+    VICTORY     = 2
+
 class MoveDirection(IntEnum):
     UP    = 0
     DOWN  = 1
