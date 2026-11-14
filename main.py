@@ -41,15 +41,7 @@ class Game:
         self.Player.setXY(plr_x, plr_y)
         self.Map.setTileAt(plr_x, plr_y, Enum.TileType.EMPTY) # remove player spawn tile after spawning
 
-    def displaceTile(self, x: int, y: int, vx: int, vy: int, replaceTile=None, replacePrev=None):
-        """ move a given tile x, y in the direction of vector vx, vy """
-        here  = self.Map.getTileAt(x, y)
-        there = self.Map.getTileAt(x+vx, y+vy)
-        if there != Enum.TileType.EMPTY and there != Enum.TileType.GOAL:
-            return False
-        self.Map.setTileAt(x, y, replacePrev or Enum.TileType.EMPTY)
-        self.Map.setTileAt(x+vx, y+vy, replaceTile or here)
-        return True
+    # input handler
 
     def step(self):
         promptstr = "enter a key (W,A,S,D,\x1b[4mR\x1b[0meset,e\x1b[4mX\x1b[0mit): "
@@ -89,6 +81,32 @@ class Game:
                 raise Exception("invalid char")
         self.move(moveDir)
 
+    # game logic
+
+    def displaceTile(self, x: int, y: int, vx: int, vy: int, replaceTile=None, replacePrev=None):
+        """ move a given tile x, y in the direction of vector vx, vy """
+        here  = self.Map.getTileAt(x, y)
+        there = self.Map.getTileAt(x+vx, y+vy)
+        if there != Enum.TileType.EMPTY and there != Enum.TileType.GOAL:
+            return False
+        self.Map.setTileAt(x, y, replacePrev or Enum.TileType.EMPTY)
+        self.Map.setTileAt(x+vx, y+vy, replaceTile or here)
+        return True
+
+    def checkWin(self):
+        """
+            check if the player has won
+            in short:
+            - it will look at every tile in the map
+            - if there exists at least ONE normal goal tile then the player hasnt won.
+            some considerations to take:
+            - it will NOT check if theres any remaining boxes on the map
+        """
+        for y in range(self.Map.Dimensions.y):
+            for x in range(self.Map.Dimensions.x):
+                if self.Map.getTileAt(x, y) == Enum.TileType.GOAL: return False
+        return True
+
     def move(self, direction: Enum.MoveDirection):
         moveVector = Vector2(0, 0)
         match direction:
@@ -124,8 +142,19 @@ class Game:
         self.Moves += 1
         self.Player.x = endPx
         self.Player.y = endPy
+        if self.checkWin():
+            self.onWin()
 
-    def renderWorld(self):
+    def onWin(self):
+        """ function called when the win condition is met """
+        self.render() # make sure to let the player view the last frame before winning
+        sys.stdout.write("\nYOU WON!!\n")
+        sys.stdout.flush()
+        self.InProgress = False
+
+    # renderer
+
+    def renderMap(self):
         for y in range(self.Map.Dimensions.y):
             for x in range(self.Map.Dimensions.x):
                 if x == self.Player.x and y == self.Player.y:
@@ -141,7 +170,7 @@ class Game:
         sys.stdout.write("MOVES: " + str(self.Moves)) # what other stats..?
         sys.stdout.write("\n" * 2)
         # world
-        self.renderWorld()
+        self.renderMap()
         # flush changes
         sys.stdout.flush()
 
