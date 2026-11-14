@@ -1,12 +1,12 @@
 # SokoPy
 
-implementation of the famous box pushing game on python.
+Clone of Sokoban written in Python.
 
-## Level formats
+## Levels
 
-The Sokoban ASCII format is currently not implemented. The objective is to reach 100% compatibility with Microban levelsets.
+Right now, the test map is hardcoded into the game, and is the only one you can choose through the menu. Eventually support for (at least) the Microban levelsets will be implemented
 
 ## Attribution
 
-### `sets/microban1.sok`
+### [sets/microban1.txt](sets/microban1.txt)
 Microban (155 puzzles) by David W. Skinner
