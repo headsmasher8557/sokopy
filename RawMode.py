@@ -20,3 +20,9 @@ elif os.name == "nt":
         while True:
             if msvcrt.kbhit():
                 return msvcrt.getwch()
+
+def getch():
+    if os.name == "posix":
+        return posix_getch()
+    elif os.name == "nt":
+        return nt_getch()

@@ -53,12 +53,10 @@ class Game:
         inp = None
         while not inp:
             try:
-                if not RawMode.enabled:
+                if RawMode.enabled:
+                    i = RawMode.getch()
+                else:
                     i = input("enter a key " + promptstr).lstrip().lower()[-1]
-                elif RawMode.enabled and os.name == "posix":
-                    i = RawMode.posix_getch()
-                elif RawMode.enabled and os.name == "nt":
-                    i = RawMode.nt_getch()
                 # HACK absolutely disgusting if
                 if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
                     inp = i
@@ -196,12 +194,10 @@ class GameManager:
         sys.stdout.flush()
         i = None
         while True:
-            if not RawMode.enabled:
+            if RawMode.enabled:
+                i = RawMode.getch().lower()
+            else:
                 i = input("enter a key: ").lower()
-            elif os.name == "posix":
-                i = RawMode.posix_getch().lower()
-            elif os.name == "nt":
-                i = RawMode.nt_getch().lower()
             if i == "1" or i == "x":
                 break
         match i:
@@ -215,12 +211,10 @@ class GameManager:
         sys.stdout.flush()
         i = None
         while True:
-            if not RawMode.enabled:
+            if RawMode.enabled:
+                i = RawMode.getch().lower()
+            else:
                 i = input("enter a key: ").lower()
-            elif os.name == "posix":
-                i = RawMode.posix_getch().lower()
-            elif os.name == "nt":
-                i = RawMode.nt_getch().lower()
             if i == "m" or i == "x":
                 break
         match i:
