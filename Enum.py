@@ -19,7 +19,6 @@ class TileType(IntEnum):
     # to check if BOX and GOAL, tile == (BOX | GOAL)"
     PLAYER = 8
 
-# TODO consider if this should be moved to Game?
 RendererCharacters: dict[int, str] = {
     TileType.EMPTY:   "  ",
     TileType.SOLID:   "██",

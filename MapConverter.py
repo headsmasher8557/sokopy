@@ -10,7 +10,6 @@ convMap: dict[str, int] = {
     "+": Enum.TileType.PLAYER | Enum.TileType.GOAL
 }
 def convert(data):
-    # TODO: our maps dont support names, maybe add something like that?
     maps = []
     curMap = []
     for line in data.split("\n"):
