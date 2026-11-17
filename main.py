@@ -62,8 +62,7 @@ class Game:
                     i = RawMode.getch()
                 else:
                     i = input("enter a key " + promptstr).lstrip().lower()[-1]
-                # HACK absolutely disgusting if
-                if i == "w" or i == "a" or i == "s" or i == "d" or i == "r" or i == "x":
+                if i in ["w","a","s","d","r","x"]: # bit better than the if but shouldnt be hardcoded maybe?
                     inp = i
                     break
             except:
